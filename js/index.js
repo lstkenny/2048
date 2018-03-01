@@ -618,4 +618,49 @@ document.addEventListener('DOMContentLoaded', function() {
 	    grid.click(pos);
 
 	}, false);
+
+	//binding the swipe events on the canvas
+	canvas.addEventListener('touchstart', handleTouchStart, false);        
+	canvas.addEventListener('touchmove', handleTouchMove, false);
+
+	var xDown = null;                                                        
+	var yDown = null;                                                        
+
+	function handleTouchStart(evt) {                                         
+	    xDown = evt.touches[0].clientX;                                      
+	    yDown = evt.touches[0].clientY;                                      
+	};                                                
+
+	function handleTouchMove(evt) {
+	    if ( ! xDown || ! yDown ) {
+	        return;
+	    }
+
+	    var xUp = evt.touches[0].clientX;                                    
+	    var yUp = evt.touches[0].clientY;
+
+	    var xDiff = xDown - xUp;
+	    var yDiff = yDown - yUp;
+
+	    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+	        if ( xDiff > 0 ) {
+	            /* left swipe */ 
+	            grid.swipe('left');
+	        } else {
+	            /* right swipe */
+	            grid.swipe('right');
+	        }                       
+	    } else {
+	        if ( yDiff > 0 ) {
+	            /* up swipe */ 
+	            grid.swipe('up');
+	        } else { 
+	            /* down swipe */
+	            grid.swipe('down');
+	        }                                                                 
+	    }
+	    /* reset values */
+	    xDown = null;
+	    yDown = null;                                             
+	};
 })
