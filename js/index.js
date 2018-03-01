@@ -64,7 +64,7 @@ class Grid
 		this.addControl(
 			'undo',
 			{
-				x: 320,
+				x: this.config.grid.size + this.config.grid.margin.left - 60,
 				y: 100
 			}, 
 			{
@@ -114,9 +114,9 @@ class Grid
 		{
 			for (let x = 0; x < this.config.size; x++)
 			{
-				if (this.matrix[x][y] == 0 ||
-					(x + 1 < this.config.size && this.matrix[x][y] == this.matrix[x + 1][y]) ||
-					(y + 1 < this.config.size && this.matrix[x][y] == this.matrix[x][y + 1]))
+				if (this.matrix[y][x].val == 0 ||
+					(y + 1 < this.config.size && this.matrix[y][x].val == this.matrix[y + 1][x].val) ||
+					(x + 1 < this.config.size && this.matrix[y][x].val == this.matrix[y][x + 1].val))
 				{
 					return true;
 				}
@@ -157,7 +157,18 @@ class Grid
 		this.matrix = new Array(this.config.size);
 		for (let i = 0; i < this.config.size; i++)
 		{
-			this.matrix[i] = new Array(this.config.size).fill(0);
+			this.matrix[i] = new Array(this.config.size);
+		}
+		for (let y = 0; y < this.config.size; y++)
+		{
+			for (let x = 0; x < this.config.size; x++)
+			{
+				this.matrix[y][x] = {
+					val: 0,
+					x: x,
+					y: y
+				}
+			}
 		}
 	}
 
@@ -168,7 +179,7 @@ class Grid
 		{
 			for (let x = 0; x < this.config.size; x++)
 			{
-				if (this.matrix[y][x] === 0)
+				if (this.matrix[y][x].val === 0)
 				{
 					emptyTiles.push({x: x, y: y});
 				}
@@ -180,7 +191,7 @@ class Grid
 		}
 		let cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
 		let val = Math.random() > 0.5 ? 2 : 4;
-		this.matrix[cell.y][cell.x] = val;
+		this.matrix[cell.y][cell.x].val = val;
 		return true;
 	}
 
@@ -231,7 +242,8 @@ class Grid
 
 	clone(matrix)
 	{
-		return matrix.map(arr => arr.slice(0));
+		// return matrix.map(arr => arr.slice(0));
+		return JSON.parse(JSON.stringify(matrix));
 	}
 
 	transpose(matrix)
@@ -252,21 +264,21 @@ class Grid
 	{
 		for (let i = 0; i < line.length; i++)
 		{
-			if (line[i] === 0)
+			if (line[i].val === 0)
 			{
 				continue;
 			}
 			for (let j = i + 1; j < line.length; j++)
 			{
-				if (line[j] === 0)
+				if (line[j].val === 0)
 				{
 					continue;
 				}
-				if (line[j] == line[i])
+				if (line[j].val == line[i].val)
 				{
-					line[i] *= 2;
-					line[j] = 0;
-					this.updateScore(line[i]);
+					line[i].val *= 2;
+					line[j].val = 0;
+					this.updateScore(line[i].val);
 				}
 				break;
 			}
@@ -276,13 +288,16 @@ class Grid
 
 	move(line)
 	{
-		let length = line.length;
+		line = line.filter(x => x.val);
 
-		line = line.filter(x => x);
+		let add = this.config.size - line.length;
 
-		let fill = new Array(length).fill(0);
+		for (let i = 0; i < add; i++)
+		{
+			line.push({val: 0});
+		}
 
-		return line.concat(fill).slice(0, length);
+		return line;
 	}
 
 	changed(arr1, arr2)
@@ -291,13 +306,62 @@ class Grid
 		{
 			for (let x = 0; x < arr1[y].length; x++)
 			{
-				if (arr1[y][x] !== arr2[y][x])
+				if (arr1[y][x].val !== arr2[y][x].val)
 				{
 					return true;
 				}
 			}
 		}
 		return false;
+	}
+
+	updateMatrix(matrix)
+	{
+		this.animMap = [];
+		for (let y = 0; y < this.config.size; y++)
+		{
+			for (let x = 0; x < this.config.size; x++)
+			{
+				if ((matrix[y][x].x && matrix[y][x].x != x) ||
+					(matrix[y][x].y && matrix[y][x].y != y))
+				{
+					this.animMap.push({
+						x: x,
+						y: y,
+						x0: matrix[y][x].x,
+						y0: matrix[y][x].y,
+						dx: (x - matrix[y][x].x) / 10,
+						dy: (y - matrix[y][x].y) / 10,
+						tile: matrix[y][x]
+					});
+				}
+				matrix[y][x].x = x;
+				matrix[y][x].y = y;
+			}
+		}
+
+		return matrix;
+	}
+
+	animate(callback)
+	{
+		this.animCounter++;
+		for (let i = 0; i < this.animMap.length; i++)
+		{
+			let anim = this.animMap[i];
+			this.matrix[anim.y0][anim.x0].x += anim.dx;
+			this.matrix[anim.y0][anim.x0].y += anim.dy;
+		}
+
+		if (this.animCounter < 10)
+		{
+			this.draw();
+			requestAnimationFrame(this.animate.bind(this, callback));
+		} 
+		else
+		{
+			callback();
+		}
 	}
 
 	swipe(dir)
@@ -307,10 +371,10 @@ class Grid
 			return;
 		}
 		let angles = {
-			'left': 0,
-			'down': 1,
-			'right': 2,
-			'up': 3
+			'up': 0,
+			'right': 1,
+			'down': 2,
+			'left': 3
 		}
 		let angle = angles[dir];
 
@@ -333,14 +397,20 @@ class Grid
 			//push game state to state history
 			this.saveState(state);
 
-			this.matrix = matrix;
-			this.insertCell();
+			matrix = this.updateMatrix(matrix);
+
+			this.animCounter = 0;
+			let self = this;
+			this.animate(function() {
+				self.matrix = matrix;
+				self.insertCell();
+				if (!self.checkMovesAvailable())
+				{
+					self.setGameOver();
+				}
+				self.draw();
+			});
 		}
-		if (!this.checkMovesAvailable())
-		{
-			this.setGameOver();
-		}
-		this.draw();
 	}
 
 	drawText(text, x, y, font, color, align = "left")
@@ -351,12 +421,18 @@ class Grid
 		this.ctx.fillText(text,	x, y);
 	}
 
-	drawScore(title, score, x, y)
+	drawScore(title, score, pos = "center")
 	{
 		let size = {
-			x: 110,
-			y: 50
+			x: this.config.fonts.score.size * 6,
+			y: this.config.fonts.score.size * 2.7
 		}
+
+		let y = 20;
+		let x = pos == 'center' ? 
+			this.config.grid.size / 2 + this.config.grid.margin.left - size.x / 2 : 
+			this.config.grid.size + this.config.grid.margin.left - size.x;
+
 		this.ctx.translate(x, y);
 		this.ctx.fillStyle = this.config.colors.scoreBackground;
 		this.ctx.fillRect(0, 0, size.x,	size.y);
@@ -428,9 +504,9 @@ class Grid
 		)
 
 		//score
-		this.drawScore('score',	this.score, 150, 20);
+		this.drawScore('score',	this.score, 'center');
 		//highscore
-		this.drawScore('best', this.highscore, 270, 20);
+		this.drawScore('best', this.highscore, 'right');
 
 		//controls
 		this.drawControls();
@@ -452,7 +528,7 @@ class Grid
 		{
 			for (let x = 0; x < this.config.size; x++)
 			{
-				let cellValue = this.matrix[y][x];
+				let cellValue = this.matrix[y][x].val;
 
 				//choose tile color
 				if (cellValue > 0)
@@ -465,8 +541,8 @@ class Grid
 				}
 				//draw tile
 				this.ctx.fillRect(
-					x * this.config.tile.size + this.config.tile.margin, 
-					y * this.config.tile.size + this.config.tile.margin, 
+					this.matrix[y][x].y * this.config.tile.size + this.config.tile.margin, 
+					this.matrix[y][x].x * this.config.tile.size + this.config.tile.margin, 
 					this.config.tile.size - this.config.tile.margin * 2, 
 					this.config.tile.size - this.config.tile.margin * 2
 				);
@@ -479,8 +555,8 @@ class Grid
 					this.ctx.textAlign = "center";
 					this.ctx.fillText(
 						cellValue, 
-						x * this.config.tile.size + this.config.tile.size / 2, 
-						y * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
+						this.matrix[y][x].y * this.config.tile.size + this.config.tile.size / 2, 
+						this.matrix[y][x].x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
 					);
 				}
 			}
@@ -543,22 +619,22 @@ const config = {
 	},
 	'fonts': {
 		'tiles': {
-			'size': 30,
-			'family': 'Arial',
-			'weight': 'bold'
-		},
-		'logo': {
 			'size': 40,
 			'family': 'Arial',
 			'weight': 'bold'
 		},
+		'logo': {
+			'size': 50,
+			'family': 'Arial',
+			'weight': 'bold'
+		},
 		'buttons': {
-			'size': 20,
+			'size': 26,
 			'family': 'Arial',
 			'weight': 'bold'
 		},
 		'score': {
-			'size': 18,
+			'size': 23,
 			'family': 'Arial',
 			'weight': 'bold'
 		}
