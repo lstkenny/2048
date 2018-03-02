@@ -1,0 +1,55 @@
+{
+	"size": 4,
+	"maxHistory": 1,
+	"animFrames": 6,
+	"colors": {
+		"tiles": [
+			"#ffffff",
+			"#eee4da",
+			"#ece0cb",
+			"#f2b179",
+			"#ec8d53",
+			"#f57b5f",
+			"#e95839",
+			"#f4d86d",
+			"#f2d04a",
+			"#e9c64c",
+			"#eac33f",
+			"#eac33f",
+			"#ed6569",
+			"#eb4b55",
+			"#f13f3d",
+			"#6eb3d4",
+			"#599edd",
+			"#1782ca" 
+		],
+		"background": "#fbf8f2",
+		"scoreBackground": "#bcaea0",
+		"gridBackground": "#bcaea0",
+		"buttonText": "#ea8211",
+		"darkText": "#776d66",
+		"lightText": "#eeeeee"
+	},
+	"fonts": {
+		"tiles": {
+			"size": 40,
+			"family": "Arial",
+			"weight": "bold"
+		},
+		"logo": {
+			"size": 50,
+			"family": "Arial",
+			"weight": "bold"
+		},
+		"buttons": {
+			"size": 26,
+			"family": "Arial",
+			"weight": "bold"
+		},
+		"score": {
+			"size": 23,
+			"family": "Arial",
+			"weight": "bold"
+		}
+	}
+}

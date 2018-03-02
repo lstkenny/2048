@@ -1,16 +1,294 @@
-class Grid
+class Grid 
 {
-	constructor(ctx, config)
+	constructor(size)
 	{
-		this.config = config;
+		this.matrix = this.setupMatrix(size);
 
-		this.ctx = ctx;
+		for (let i = 0; i < 2; i++)
+		{
+			this.insertCell();
+		}
+	}
 
-		this.setupSize();
+	checkMovesAvailable()
+	{
+		let size = this.matrix.length;
 
-		this.setupControls();
+		for (let x = 0; x < size; x++)
+		{
+			for (let y = 0; y < size; y++)
+			{
+				if (this.matrix[x][y].val == 0 ||
+					(x + 1 < size && this.matrix[x][y].val == this.matrix[x + 1][y].val) ||
+					(y + 1 < size && this.matrix[x][y].val == this.matrix[x][y + 1].val))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
-		this.reset();
+	setupMatrix(size)
+	{
+		let matrix = new Array(size);
+		for (let x = 0; x < size; x++)
+		{
+			matrix[x] = new Array(size);
+			for (let y = 0; y < size; y++)
+			{
+				matrix[x][y] = {
+					val: 0,
+					x: x,
+					y: y
+				}
+			}
+		}
+		return matrix;
+	}
+
+	insertCell()
+	{
+		let emptyTiles = new Array();
+		for (let x = 0; x < this.matrix.length; x++)
+		{
+			for (let y = 0; y < this.matrix[x].length; y++)
+			{
+				if (this.matrix[x][y].val === 0)
+				{
+					emptyTiles.push({x: x, y: y});
+				}
+			}
+		}
+		if (emptyTiles.length == 0)
+		{
+			return false;
+		}
+		let cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+		cell.val = Math.random() > 0.5 ? 2 : 4;
+		this.matrix[cell.x][cell.y] = cell;
+
+		return cell;
+	}
+
+	clone(object)
+	{
+		if (Array.isArray(object))
+		{
+			return JSON.parse(JSON.stringify(object));
+		}
+		else if (typeof object === "object")
+		{
+			return Object.assign({}, object);
+		}
+		return false;
+	}
+
+	cloneMatrix()
+	{
+		return this.clone(this.matrix);
+	}
+
+	transpose()
+	{
+		this.matrix = this.matrix[0].map((col, i) => this.matrix.map(row => row[i]));
+	}
+
+	rotate(times = 1)
+	{
+		for (let i = 0; i < times; i++)
+		{
+			this.matrix = this.matrix.reverse();
+			this.transpose();
+		}
+	}
+
+	concat(line)
+	{
+		for (let i = 0; i < line.length; i++)
+		{
+			if (line[i].val === 0)
+			{
+				continue;
+			}
+			for (let j = i + 1; j < line.length; j++)
+			{
+				if (line[j].val === 0)
+				{
+					continue;
+				}
+				if (line[j].val == line[i].val)
+				{
+					line[i].val *= 2;
+					line[j].mergedWith = line[i];
+					this.points += line[i].val;
+				}
+				break;
+			}
+		}
+		return line;
+	}
+
+	move(line)
+	{
+		let size = line.length;
+
+		line = line.filter(x => x.val);
+
+		let add = size - line.length;
+
+		for (let i = 0; i < add; i++)
+		{
+			line.push({val: 0});
+		}
+
+		return line;
+
+		for (let i = 1; i < size; i++)
+		{
+			for (let j = i; j >= 0; j--)
+			{
+				if (line[j].val == 0)
+				{
+					break;
+				}
+				if (line[j].val == line[i].val)
+				{
+
+				}
+			}
+		}
+	}
+
+	swipe(dir)
+	{
+		let angles = {
+			'left': 0,
+			'down': 1,
+			'right': 2,
+			'up': 3
+		}
+		let angle = angles[dir];
+
+		this.points = 0;
+
+		let matrix = this.cloneMatrix();
+
+		this.rotate(angle);
+
+		for (let i = 0; i < this.matrix.length; i++)
+		{
+			this.matrix[i] = this.concat(this.matrix[i]);
+			this.matrix[i] = this.move(this.matrix[i]);
+		}
+
+		this.rotate(4 - angle);
+
+		return this.changed(matrix, this.matrix);
+	}
+/*
+	dump(arr)
+	{
+		let res = [];
+		for (let x = 0; x < arr.length; x++)
+		{
+			res[x] = [];
+			for (let y = 0; y < arr.length; y++)
+			{
+				res[x][y] = arr[x][y].val;
+			}
+		}
+	}*/
+
+	changed(arr1, arr2)
+	{
+		for (let x = 0; x < arr1.length; x++)
+		{
+			for (let y = 0; y < arr1[x].length; y++)
+			{
+				if (arr1[x][y].val !== arr2[x][y].val)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	getAnimMap(frames)
+	{
+		let animMap = [];
+		for (let x = 0; x < this.matrix.length; x++)
+		{
+			for (let y = 0; y < this.matrix[x].length; y++)
+			{
+				if ((this.matrix[x][y].x && this.matrix[x][y].x != x) ||
+					(this.matrix[x][y].y && this.matrix[x][y].y != y))
+				{
+					animMap.push({
+						x: x,
+						y: y,
+						x0: this.matrix[x][y].x,
+						y0: this.matrix[x][y].y,
+						dx: (x - this.matrix[x][y].x) / frames,
+						dy: (y - this.matrix[x][y].y) / frames,
+						tile: this.matrix[x][y]
+					});
+				}
+				if ((this.matrix[x][y].mergedWith))
+				{
+					animMap.push({
+						x: this.matrix[x][y].mergedWith.x,
+						y: this.matrix[x][y].mergedWith.y,
+						x0: this.matrix[x][y].x,
+						y0: this.matrix[x][y].y,
+						dx: (-this.matrix[x][y].mergedWith.x + this.matrix[x][y].x) / frames,
+						dy: (-this.matrix[x][y].mergedWith.y + this.matrix[x][y].y) / frames,
+						tile: this.matrix[x][y]
+					})
+				}
+			}
+		}
+
+		return animMap;
+	}
+
+	updateMatrix()
+	{
+		for (let x = 0; x < this.matrix.length; x++)
+		{
+			for (let y = 0; y < this.matrix[x].length; y++)
+			{
+				if (this.matrix[x][y].mergedWith)
+				{
+					this.matrix[x][y].val = 0;
+					this.matrix[x][y].mergedWith = null;
+				}
+				this.matrix[x][y].x = x;
+				this.matrix[x][y].y = y;
+			}
+		}
+	}
+}
+
+class Game
+{
+	constructor(ctx)
+	{
+		fetch('./js/config.json')		
+		.then(response => response.json())
+		.then(config => {
+
+			this.config = config;
+
+			this.ctx = ctx;
+			
+			this.setupSize();
+
+			this.setupControls();
+
+			this.reset();
+		});
 	}
 
 	setupSize()
@@ -83,12 +361,8 @@ class Grid
 		this.score = 0;
 		this.gameOver = false;
 
-		this.setMatrix();
+		this.grid = new Grid(this.config.size);
 
-		for (let i = 0; i < 2; i++)
-		{
-			this.insertCell();
-		}
 		fetch('./highscores.json')
 		.then(response => response.json())
 		.then(scores => {
@@ -106,23 +380,6 @@ class Grid
 		.then(response => {
 			this.draw();
 		});
-	}
-
-	checkMovesAvailable()
-	{
-		for (let y = 0; y < this.config.size; y++)
-		{
-			for (let x = 0; x < this.config.size; x++)
-			{
-				if (this.matrix[y][x].val == 0 ||
-					(y + 1 < this.config.size && this.matrix[y][x].val == this.matrix[y + 1][x].val) ||
-					(x + 1 < this.config.size && this.matrix[y][x].val == this.matrix[y][x + 1].val))
-				{
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	addControl(name, pos, size, visible, callback)
@@ -152,70 +409,23 @@ class Grid
 		}
 	}
 
-	setMatrix()
-	{
-		this.matrix = new Array(this.config.size);
-		for (let i = 0; i < this.config.size; i++)
-		{
-			this.matrix[i] = new Array(this.config.size);
-		}
-		for (let y = 0; y < this.config.size; y++)
-		{
-			for (let x = 0; x < this.config.size; x++)
-			{
-				this.matrix[y][x] = {
-					val: 0,
-					x: x,
-					y: y
-				}
-			}
-		}
-	}
-
-	insertCell()
-	{
-		let emptyTiles = new Array();
-		for (let y = 0; y < this.config.size; y++)
-		{
-			for (let x = 0; x < this.config.size; x++)
-			{
-				if (this.matrix[y][x].val === 0)
-				{
-					emptyTiles.push({x: x, y: y});
-				}
-			}
-		}
-		if (emptyTiles.length == 0)
-		{
-			return false;
-		}
-		let cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
-		let val = Math.random() > 0.5 ? 2 : 4;
-		this.matrix[cell.y][cell.x].val = val;
-		return true;
-	}
-
 	updateScore(score)
 	{
-		this.score += score;
+		this.score += this.grid.points;
 		if (this.highscore < this.score)
 		{
 			this.highscore = this.score;
 		}
 	}
 
-	getState()
+	saveState(matrix)
 	{
 		let state = {
-			matrix: this.clone(this.matrix), 
+			matrix: matrix, 
 			score: this.score, 
 			highscore: this.highscore
 		};
-		return state;
-	}
 
-	saveState(state)
-	{
 		this.history.push(state);
 
 		if (this.history.length > this.config.maxHistory)
@@ -233,129 +443,27 @@ class Grid
 		let state = this.history.pop();
 		if (state)
 		{
-			this.matrix = this.clone(state.matrix);
+			this.grid.matrix = state.matrix;
 			this.score = state.score;
 			this.highscore = state.highscore;
 			this.draw();
 		}
 	}
 
-	clone(matrix)
-	{
-		// return matrix.map(arr => arr.slice(0));
-		return JSON.parse(JSON.stringify(matrix));
-	}
-
-	transpose(matrix)
-	{
-		return matrix[0].map((col, i) => matrix.map(row => row[i]));
-	}
-
-	rotate(matrix, times = 1)
-	{
-		for (let i = 0; i < times; i++)
-		{
-			matrix = this.transpose(matrix.reverse());
-		}
-		return matrix;
-	}
-
-	concat(line)
-	{
-		for (let i = 0; i < line.length; i++)
-		{
-			if (line[i].val === 0)
-			{
-				continue;
-			}
-			for (let j = i + 1; j < line.length; j++)
-			{
-				if (line[j].val === 0)
-				{
-					continue;
-				}
-				if (line[j].val == line[i].val)
-				{
-					line[i].val *= 2;
-					line[j].val = 0;
-					this.updateScore(line[i].val);
-				}
-				break;
-			}
-		}
-		return line;
-	}
-
-	move(line)
-	{
-		line = line.filter(x => x.val);
-
-		let add = this.config.size - line.length;
-
-		for (let i = 0; i < add; i++)
-		{
-			line.push({val: 0});
-		}
-
-		return line;
-	}
-
-	changed(arr1, arr2)
-	{
-		for (let y = 0; y < arr1.length; y++)
-		{
-			for (let x = 0; x < arr1[y].length; x++)
-			{
-				if (arr1[y][x].val !== arr2[y][x].val)
-				{
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	updateMatrix(matrix)
-	{
-		this.animMap = [];
-		for (let y = 0; y < this.config.size; y++)
-		{
-			for (let x = 0; x < this.config.size; x++)
-			{
-				if ((matrix[y][x].x && matrix[y][x].x != x) ||
-					(matrix[y][x].y && matrix[y][x].y != y))
-				{
-					this.animMap.push({
-						x: x,
-						y: y,
-						x0: matrix[y][x].x,
-						y0: matrix[y][x].y,
-						dx: (x - matrix[y][x].x) / 10,
-						dy: (y - matrix[y][x].y) / 10,
-						tile: matrix[y][x]
-					});
-				}
-				matrix[y][x].x = x;
-				matrix[y][x].y = y;
-			}
-		}
-
-		return matrix;
-	}
-
 	animate(callback)
 	{
 		this.animCounter++;
+
 		for (let i = 0; i < this.animMap.length; i++)
 		{
 			let anim = this.animMap[i];
-			this.matrix[anim.y0][anim.x0].x += anim.dx;
-			this.matrix[anim.y0][anim.x0].y += anim.dy;
+			this.grid.matrix[anim.x][anim.y].x += anim.dx;
+			this.grid.matrix[anim.x][anim.y].y += anim.dy;
 		}
 
-		if (this.animCounter < 10)
+		if (this.animCounter < this.config.animFrames)
 		{
-			this.draw();
+			this.drawGrid();
 			requestAnimationFrame(this.animate.bind(this, callback));
 		} 
 		else
@@ -370,41 +478,24 @@ class Grid
 		{
 			return;
 		}
-		let angles = {
-			'up': 0,
-			'right': 1,
-			'down': 2,
-			'left': 3
-		}
-		let angle = angles[dir];
-
 		//current game state
-		let state = this.getState();
+		let matrix = this.grid.cloneMatrix();
 
-		let matrix = this.clone(this.matrix);
-		matrix = this.rotate(matrix, angle);
-
-		for (let i = 0; i < matrix.length; i++)
-		{
-			matrix[i] = this.concat(matrix[i]);
-			matrix[i] = this.move(matrix[i]);
-		}
-
-		matrix = this.rotate(matrix, 4 - angle);
-
-		if (this.changed(this.matrix, matrix))
+		if (this.grid.swipe(dir))
 		{
 			//push game state to state history
-			this.saveState(state);
+			this.saveState(matrix);
 
-			matrix = this.updateMatrix(matrix);
+			this.updateScore();
 
 			this.animCounter = 0;
+			this.animMap = this.grid.getAnimMap(this.config.animFrames);
+
 			let self = this;
 			this.animate(function() {
-				self.matrix = matrix;
-				self.insertCell();
-				if (!self.checkMovesAvailable())
+				self.grid.updateMatrix();
+				self.grid.insertCell();
+				if (!self.grid.checkMovesAvailable())
 				{
 					self.setGameOver();
 				}
@@ -481,6 +572,93 @@ class Grid
 		}
 	}
 
+	drawGrid()
+	{
+		//grid background
+		this.ctx.translate(
+			this.config.grid.margin.left,
+			this.config.grid.margin.top
+		);
+		this.ctx.fillStyle = this.config.colors.gridBackground;
+		this.ctx.fillRect(
+			-this.config.tile.margin, 
+			-this.config.tile.margin, 
+			this.config.grid.size + this.config.tile.margin * 2, 
+			this.config.grid.size + this.config.tile.margin * 2
+		);
+
+		for (let x = 0; x < this.config.size; x++)
+		{
+			for (let y = 0; y < this.config.size; y++)
+			{
+				this.ctx.fillStyle = this.config.colors.tiles[0];
+				this.ctx.fillRect(
+					x * this.config.tile.size + this.config.tile.margin, 
+					y * this.config.tile.size + this.config.tile.margin, 
+					this.config.tile.size - this.config.tile.margin * 2, 
+					this.config.tile.size - this.config.tile.margin * 2
+				);
+			}
+		}
+
+		for (let x = 0; x < this.config.size; x++)
+		{
+			for (let y = 0; y < this.config.size; y++)
+			{
+				let tile = this.grid.matrix[x][y];
+
+				//choose tile color
+				if (tile.val > 0)
+				{
+					this.ctx.fillStyle = this.config.colors.tiles[Math.log2(tile.val)];
+
+					//draw tile
+					this.ctx.fillRect(
+						tile.y * this.config.tile.size + this.config.tile.margin, 
+						tile.x * this.config.tile.size + this.config.tile.margin, 
+						this.config.tile.size - this.config.tile.margin * 2, 
+						this.config.tile.size - this.config.tile.margin * 2
+					);
+				}
+
+				//draw tile number
+				if (tile.val > 0)
+				{
+					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.size + 'px ' + this.config.fonts.tiles.family;
+					this.ctx.fillStyle = tile.val > 4 ? this.config.colors.lightText : this.config.colors.darkText;
+					this.ctx.textAlign = "center";
+					this.ctx.fillText(
+						tile.val, 
+						tile.y * this.config.tile.size + this.config.tile.size / 2, 
+						tile.x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
+					);
+				}
+			}
+		}
+
+		if (this.gameOver)
+		{
+			this.ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+			this.ctx.fillRect(
+				-this.config.tile.margin, 
+				-this.config.tile.margin, 
+				this.config.grid.size + this.config.tile.margin * 2, 
+				this.config.grid.size + this.config.tile.margin * 2
+			);
+
+			this.drawText(
+				'Game over',
+				this.config.grid.size / 2,
+				this.config.grid.size / 2 - this.config.fonts.logo.size / 3,
+				this.config.fonts.logo,
+				this.config.colors.darkText,
+				"center"
+			)
+		}
+		//reset grid translate
+		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+	}
+
 	draw()
 	{
 
@@ -511,140 +689,17 @@ class Grid
 		//controls
 		this.drawControls();
 
-		//grid background
-		this.ctx.translate(
-			this.config.grid.margin.left,
-			this.config.grid.margin.top
-		);
-		this.ctx.fillStyle = this.config.colors.gridBackground;
-		this.ctx.fillRect(
-			-this.config.tile.margin, 
-			-this.config.tile.margin, 
-			this.config.grid.size + this.config.tile.margin * 2, 
-			this.config.grid.size + this.config.tile.margin * 2
-		);
-
-		for (let y = 0; y < this.config.size; y++)
-		{
-			for (let x = 0; x < this.config.size; x++)
-			{
-				let cellValue = this.matrix[y][x].val;
-
-				//choose tile color
-				if (cellValue > 0)
-				{
-					this.ctx.fillStyle = this.config.colors.tiles[Math.log2(cellValue)];
-				}
-				else 
-				{
-					this.ctx.fillStyle = this.config.colors.tiles[0];
-				}
-				//draw tile
-				this.ctx.fillRect(
-					this.matrix[y][x].y * this.config.tile.size + this.config.tile.margin, 
-					this.matrix[y][x].x * this.config.tile.size + this.config.tile.margin, 
-					this.config.tile.size - this.config.tile.margin * 2, 
-					this.config.tile.size - this.config.tile.margin * 2
-				);
-
-				//draw tile number
-				if (cellValue > 0)
-				{
-					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.size + 'px ' + this.config.fonts.tiles.family;
-					this.ctx.fillStyle = cellValue > 4 ? this.config.colors.lightText : this.config.colors.darkText;
-					this.ctx.textAlign = "center";
-					this.ctx.fillText(
-						cellValue, 
-						this.matrix[y][x].y * this.config.tile.size + this.config.tile.size / 2, 
-						this.matrix[y][x].x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
-					);
-				}
-			}
-		}
-		if (this.gameOver)
-		{
-			this.ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-			this.ctx.fillRect(
-				-this.config.tile.margin, 
-				-this.config.tile.margin, 
-				this.config.grid.size + this.config.tile.margin * 2, 
-				this.config.grid.size + this.config.tile.margin * 2
-			);
-
-			this.drawText(
-				'Game over',
-				this.config.grid.size / 2,
-				this.config.grid.size / 2 - this.config.fonts.logo.size / 3,
-				this.config.fonts.logo,
-				this.config.colors.darkText,
-				"center"
-			)
-		}
-		//reset grid translate
-		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+		//draw grid
+		this.drawGrid();
 	}
 }
 
 //game configuration
-const config = {
-	'size': 4,
-	'maxHistory': 1,
-	'colors': {
-		'tiles': [
-			'#ffffff', //0
-			'#eee4da', //2
-			'#ece0cb', //4
-			'#f2b179', //8
-			'#ec8d53', //16
-			'#f57b5f', //32
-			'#e95839', //64
-			'#f4d86d', //128
-			'#f2d04a', //256
-			'#e9c64c', //512
-			'#eac33f', //1024
-			'#eac33f', //2048
-			'#ed6569', //4096
-			'#eb4b55', //8192
-			'#f13f3d', //16384
-			'#6eb3d4', //32768
-			'#599edd', //65536
-			'#1782ca' //131072
-		],
-		'background': '#fbf8f2',
-		'scoreBackground': '#bcaea0',
-		'gridBackground': '#bcaea0',
-		'buttonText': '#ea8211',
-		'darkText': '#776d66',
-		'lightText': '#eeeeee'
-	},
-	'fonts': {
-		'tiles': {
-			'size': 40,
-			'family': 'Arial',
-			'weight': 'bold'
-		},
-		'logo': {
-			'size': 50,
-			'family': 'Arial',
-			'weight': 'bold'
-		},
-		'buttons': {
-			'size': 26,
-			'family': 'Arial',
-			'weight': 'bold'
-		},
-		'score': {
-			'size': 23,
-			'family': 'Arial',
-			'weight': 'bold'
-		}
-	}
-}
 
 document.addEventListener('DOMContentLoaded', function() {
 	const canvas = document.getElementById('cnv');
 	const context = canvas.getContext('2d');
-	const grid = new Grid(context, config);
+	const game = new Game(context);
 
 	//keyboard configuration
 	document.onkeydown = function(event) {
@@ -656,27 +711,27 @@ document.addEventListener('DOMContentLoaded', function() {
 		switch(code) {
 			case 37:
 				// Key left.
-				grid.swipe('left');
+				game.swipe('left');
 				break;
 			case 38:
 				// Key up.
-				grid.swipe('up');
+				game.swipe('up');
 				break;
 			case 39:
 				// Key right.
-				grid.swipe('right');
+				game.swipe('right');
 				break;
 			case 40:
 				// Key down.
-				grid.swipe('down');
+				game.swipe('down');
 				break;
 			case 8:
 				// Backspace
-				grid.undo();
+				game.undo();
 				break;
 			case 82:
 				// R
-				grid.reset();
+				game.reset();
 				break;
 		}
 		event.preventDefault();
@@ -691,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	        y: event.clientY - rect.top
 	    };
 
-	    grid.click(pos);
+	    game.click(pos);
 
 	}, false);
 
@@ -721,18 +776,18 @@ document.addEventListener('DOMContentLoaded', function() {
 	    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
 	        if ( xDiff > 0 ) {
 	            /* left swipe */ 
-	            grid.swipe('left');
+	            game.swipe('left');
 	        } else {
 	            /* right swipe */
-	            grid.swipe('right');
+	            game.swipe('right');
 	        }                       
 	    } else {
 	        if ( yDiff > 0 ) {
 	            /* up swipe */ 
-	            grid.swipe('up');
+	            game.swipe('up');
 	        } else { 
 	            /* down swipe */
-	            grid.swipe('down');
+	            game.swipe('down');
 	        }                                                                 
 	    }
 	    /* reset values */
