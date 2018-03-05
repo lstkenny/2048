@@ -6,7 +6,7 @@ class Grid
 
 		for (let i = 0; i < 2; i++)
 		{
-			this.insertCell();
+			this.addTile();
 		}
 	}
 
@@ -37,8 +37,9 @@ class Grid
 			matrix[x] = new Array(size);
 			for (let y = 0; y < size; y++)
 			{
+				let val = 2;//y < 3 ? 2 : 0;
 				matrix[x][y] = {
-					val: 0,
+					val: val,
 					x: x,
 					y: y
 				}
@@ -47,7 +48,7 @@ class Grid
 		return matrix;
 	}
 
-	insertCell()
+	addTile()
 	{
 		let emptyTiles = new Array();
 		for (let x = 0; x < this.matrix.length; x++)
@@ -66,6 +67,7 @@ class Grid
 		}
 		let cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
 		cell.val = Math.random() > 0.5 ? 2 : 4;
+		cell.new = true;
 		this.matrix[cell.x][cell.y] = cell;
 
 		return cell;
@@ -119,8 +121,10 @@ class Grid
 				}
 				if (line[j].val == line[i].val)
 				{
+					line[j].merged = this.clone(line[j]);
+					line[j].mergedWith = this.clone(line[i]);
 					line[i].val *= 2;
-					line[j].mergedWith = line[i];
+					line[j].val = 0;
 					this.points += line[i].val;
 				}
 				break;
@@ -133,31 +137,29 @@ class Grid
 	{
 		let size = line.length;
 
-		line = line.filter(x => x.val);
-
-		let add = size - line.length;
-
-		for (let i = 0; i < add; i++)
-		{
-			line.push({val: 0});
-		}
-
-		return line;
-
 		for (let i = 1; i < size; i++)
 		{
-			for (let j = i; j >= 0; j--)
+			if (line[i].val == 0)
+			{
+				continue;
+			}
+			for (let j = i; j > 0; j--)
 			{
 				if (line[j].val == 0)
 				{
+					continue;
+				}
+				if (line[j - 1].val > 0)
+				{
 					break;
 				}
-				if (line[j].val == line[i].val)
-				{
-
-				}
+				let buff = line[j];
+				line[j] = line[j - 1];
+				line[j - 1] = buff;
 			}
 		}
+
+		return line;
 	}
 
 	swipe(dir)
@@ -186,7 +188,6 @@ class Grid
 
 		return this.changed(matrix, this.matrix);
 	}
-/*
 	dump(arr)
 	{
 		let res = [];
@@ -198,7 +199,8 @@ class Grid
 				res[x][y] = arr[x][y].val;
 			}
 		}
-	}*/
+		console.table(res);
+	}
 
 	changed(arr1, arr2)
 	{
@@ -222,7 +224,20 @@ class Grid
 		{
 			for (let y = 0; y < this.matrix[x].length; y++)
 			{
-				if ((this.matrix[x][y].x && this.matrix[x][y].x != x) ||
+				if ((this.matrix[x][y].merged))
+				{
+					animMap.push({
+						x: this.matrix[x][y].merged.x,
+						y: this.matrix[x][y].merged.y,
+						x0: this.matrix[x][y].mergedWith.x,
+						y0: this.matrix[x][y].mergedWith.y,
+						dx: (this.matrix[x][y].mergedWith.x - this.matrix[x][y].merged.x) / frames,
+						dy: (this.matrix[x][y].mergedWith.y - this.matrix[x][y].merged.y) / frames,
+						tile: this.matrix[x][y],
+						merged: this.matrix[x][y].merged
+					})
+				}
+				else if ((this.matrix[x][y].x && this.matrix[x][y].x != x) ||
 					(this.matrix[x][y].y && this.matrix[x][y].y != y))
 				{
 					animMap.push({
@@ -234,18 +249,6 @@ class Grid
 						dy: (y - this.matrix[x][y].y) / frames,
 						tile: this.matrix[x][y]
 					});
-				}
-				if ((this.matrix[x][y].mergedWith))
-				{
-					animMap.push({
-						x: this.matrix[x][y].mergedWith.x,
-						y: this.matrix[x][y].mergedWith.y,
-						x0: this.matrix[x][y].x,
-						y0: this.matrix[x][y].y,
-						dx: (-this.matrix[x][y].mergedWith.x + this.matrix[x][y].x) / frames,
-						dy: (-this.matrix[x][y].mergedWith.y + this.matrix[x][y].y) / frames,
-						tile: this.matrix[x][y]
-					})
 				}
 			}
 		}
@@ -259,13 +262,15 @@ class Grid
 		{
 			for (let y = 0; y < this.matrix[x].length; y++)
 			{
-				if (this.matrix[x][y].mergedWith)
+				if (!this.matrix[x][y].val)
 				{
-					this.matrix[x][y].val = 0;
-					this.matrix[x][y].mergedWith = null;
+					this.matrix[x][y] = {x: x, y: y, val: 0};
 				}
-				this.matrix[x][y].x = x;
-				this.matrix[x][y].y = y;
+				else
+				{
+					let val = this.matrix[x][y].val;
+					this.matrix[x][y] = {x: x, y: y, val: val};
+				}
 			}
 		}
 	}
@@ -454,20 +459,39 @@ class Game
 	{
 		this.animCounter++;
 
-		for (let i = 0; i < this.animMap.length; i++)
-		{
-			let anim = this.animMap[i];
-			this.grid.matrix[anim.x][anim.y].x += anim.dx;
-			this.grid.matrix[anim.x][anim.y].y += anim.dy;
-		}
+		//merged tiles are messed up somewhere here
+		
+		this.grid.dump(this.grid.matrix);
 
 		if (this.animCounter < this.config.animFrames)
 		{
+			for (let i = 0; i < this.animMap.length; i++)
+			{
+				let anim = this.animMap[i];
+				this.grid.matrix[anim.x][anim.y].x += anim.dx;
+				this.grid.matrix[anim.x][anim.y].y += anim.dy;
+				if (anim.merged)
+				{
+					this.grid.matrix[anim.x][anim.y].val = anim.merged.val;
+				}
+			}
 			this.drawGrid();
 			requestAnimationFrame(this.animate.bind(this, callback));
 		} 
 		else
 		{
+			this.grid.dump(this.grid.matrix);
+			for (let i = 0; i < this.animMap.length; i++)
+			{
+				let anim = this.animMap[i];
+				this.grid.matrix[anim.x][anim.y].x = anim.x;
+				this.grid.matrix[anim.x][anim.y].y = anim.y;
+				if (anim.merged)
+				{
+					this.grid.matrix[anim.x][anim.y].val = anim.tile.val;
+				}
+			}
+			this.grid.dump(this.grid.matrix);
 			callback();
 		}
 	}
@@ -492,9 +516,10 @@ class Game
 			this.animMap = this.grid.getAnimMap(this.config.animFrames);
 
 			let self = this;
+
 			this.animate(function() {
 				self.grid.updateMatrix();
-				self.grid.insertCell();
+				self.grid.addTile();
 				if (!self.grid.checkMovesAvailable())
 				{
 					self.setGameOver();
