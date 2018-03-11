@@ -1,44 +1,3 @@
-/*function move(line)
-{
-	let lim = 0;
-	for (let i = 1; i < line.length; i++)
-	{
-		let cur = i;
-		while (cur > lim)
-		{
-			let prev = cur - 1;
-			//skip empty tiles
-			if (line[cur] == 0)
-			{
-				break;
-			}
-			//move tiles
-			else if (line[prev] == 0)
-			{
-				let buff = line[cur];
-				line[cur] = line[prev];
-				line[prev] = buff;
-			}
-			//merge tiles
-			else if (line[cur] == line[prev])
-			{
-				line[prev] += line[cur];
-				line[cur] = 0;
-				lim = cur;
-				break;
-			}
-			//obstruct tiles
-			else
-			{
-				lim = cur;
-				break;
-			}
-			cur--;
-		}
-	}
-	return line;
-}
-*/
 class Grid 
 {
 	constructor(size)
@@ -80,7 +39,7 @@ class Grid
 			matrix[x] = new Array(size);
 			for (let y = 0; y < size; y++)
 			{
-				let val = y < 2 ? 2 : 4;
+				let val = 0;//y < 2 ? 2 : 4;
 				matrix[x][y] = {
 					val: val,
 					x: x,
@@ -261,11 +220,11 @@ class Grid
 			{
 				this.matrix[x][y].x0 = x;
 				this.matrix[x][y].y0 = y;
-				if (this.matrix[x][y].hasOwnProperty('oldVal'))
-				{
-					this.matrix[x][y].newVal = this.matrix[x][y].val;
-					this.matrix[x][y].val = this.matrix[x][y].oldVal;
-				}
+				// if (this.matrix[x][y].hasOwnProperty('oldVal'))
+				// {
+				// 	this.matrix[x][y].newVal = this.matrix[x][y].val;
+				// 	this.matrix[x][y].val = this.matrix[x][y].oldVal;
+				// }
 			}
 		}
 
