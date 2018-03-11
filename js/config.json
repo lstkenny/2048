@@ -1,7 +1,7 @@
 {
 	"size": 4,
 	"maxHistory": 1,
-	"animFrames": 6,
+	"animFrames": 300,
 	"colors": {
 		"tiles": [
 			"#ffffff",
