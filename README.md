@@ -3,8 +3,8 @@
 
 ### work in progress
 
-- [+] add animation lock
-- [+] fix merge animation (kind of)
-- [+] add new tiles animation
+- [x] add animation lock
+- [x] fix merge animation (kind of)
+- [x] add new tiles animation
 - [ ] add responsive/fullscreen
-- [+] make highscores for individual IP
+- [x] make highscores for individual IP
