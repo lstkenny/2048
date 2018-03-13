@@ -10,6 +10,7 @@ class Grid
 		{
 			this.addTile();
 		}
+		this.updateMatrix();
 	}
 
 	checkMovesAvailable()
@@ -181,20 +182,6 @@ class Grid
 		return this.changed(matrix, this.matrix);
 	}
 
-	dump(arr)
-	{
-		let res = [];
-		for (let x = 0; x < arr.length; x++)
-		{
-			res[x] = [];
-			for (let y = 0; y < arr.length; y++)
-			{
-				res[x][y] = arr[x][y].val;
-			}
-		}
-		console.table(res);
-	}
-
 	changed(arr1, arr2)
 	{
 		for (let x = 0; x < arr1.length; x++)
@@ -220,11 +207,6 @@ class Grid
 			{
 				this.matrix[x][y].x0 = x;
 				this.matrix[x][y].y0 = y;
-				// if (this.matrix[x][y].hasOwnProperty('oldVal'))
-				// {
-				// 	this.matrix[x][y].newVal = this.matrix[x][y].val;
-				// 	this.matrix[x][y].val = this.matrix[x][y].oldVal;
-				// }
 			}
 		}
 
@@ -232,6 +214,17 @@ class Grid
 		{
 			for (let y = 0; y < this.matrix[x].length; y++)
 			{
+				//new tile
+				if (this.matrix[x][y].val && this.matrix[x][y].new)
+				{
+					let anim = {
+						x: x,
+						y: y,
+						ds: 1, 
+						tile: this.matrix[x][y]
+					}
+					animMap.push(anim);
+				}
 				//merge animation map
 				if (this.matrix[x][y].mergedWith)
 				{
@@ -247,7 +240,6 @@ class Grid
 						tile: this.matrix[x][y]
 					}
 					animMap.push(anim);
-					// console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.oldVal + ') merge to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
 				} 
 				else if (this.matrix[x][y].val && (
 					this.matrix[x][y].x != x ||
@@ -265,7 +257,6 @@ class Grid
 						tile: this.matrix[x][y]
 					}
 					animMap.push(anim);
-					// console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.val + ') moves to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
 				}
 			}
 		}
@@ -481,35 +472,30 @@ class Game
 	{
 		this.animCounter++;
 
-		// this.grid.dump(this.grid.matrix);
-
 		if (this.animCounter < this.config.animFrames)
 		{
 			for (let i = 0; i < this.animMap.length; i++)
 			{
 				let anim = this.animMap[i];
-				anim.x0 += anim.dx;
-				anim.y0 += anim.dy;
-				this.grid.matrix[anim.x][anim.y].x = anim.x0;
-				this.grid.matrix[anim.x][anim.y].y = anim.y0;
+				if (anim.dx || anim.dy)
+				{
+					anim.x0 += anim.dx;
+					anim.y0 += anim.dy;
+					this.grid.matrix[anim.x][anim.y].x = anim.x0;
+					this.grid.matrix[anim.x][anim.y].y = anim.y0;
+				}
+				if (anim.ds)
+				{
+					let size = this.animCounter / this.config.animFrames;
+					this.grid.matrix[anim.x][anim.y].s = size;
+
+				}
 			}
 			this.drawGrid();
 			requestAnimationFrame(this.animate.bind(this, callback));
 		} 
 		else
 		{
-			// this.grid.dump(this.grid.matrix);
-			// for (let i = 0; i < this.animMap.length; i++)
-			// {
-			// 	let anim = this.animMap[i];
-			// 	this.grid.matrix[anim.x][anim.y].x = anim.x;
-			// 	this.grid.matrix[anim.x][anim.y].y = anim.y;
-			// 	if (anim.tile.newVal)
-			// 	{
-			// 		this.grid.matrix[anim.x][anim.y].val = anim.tile.newVal;
-			// 	}
-			// }
-			// this.grid.dump(this.grid.matrix);
 			callback();
 		}
 	}
@@ -525,13 +511,15 @@ class Game
 
 		if (this.grid.swipe(dir))
 		{
-			// this.grid.dump(this.grid.matrix);
 			//push game state to state history
 			this.saveState(matrix);
 
 			this.updateScore();
 
 			this.animCounter = 0;
+
+			this.grid.addTile();
+
 			this.animMap = this.grid.getAnimMap(this.config.animFrames);
 
 			let self = this;
@@ -539,7 +527,6 @@ class Game
 
 			this.animate(function() {
 				self.grid.updateMatrix();
-				self.grid.addTile();
 				if (!self.grid.checkMovesAvailable())
 				{
 					self.setGameOver();
@@ -658,12 +645,19 @@ class Game
 				{
 					this.ctx.fillStyle = this.config.colors.tiles[Math.log2(tile.val)];
 
+					let ds = this.config.tile.size;
+					let dm = 0;
+					if (tile.s)
+					{
+						ds = this.config.tile.size * tile.s;
+						dm = (this.config.tile.size - ds) / 2;
+					}
 					//draw tile
 					this.ctx.fillRect(
-						tile.y * this.config.tile.size + this.config.tile.margin, 
-						tile.x * this.config.tile.size + this.config.tile.margin, 
-						this.config.tile.size - this.config.tile.margin * 2, 
-						this.config.tile.size - this.config.tile.margin * 2
+						tile.y * this.config.tile.size + this.config.tile.margin + dm, 
+						tile.x * this.config.tile.size + this.config.tile.margin + dm, 
+						ds - this.config.tile.margin * 2, 
+						ds - this.config.tile.margin * 2
 					);
 				}
 

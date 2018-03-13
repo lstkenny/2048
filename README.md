@@ -4,7 +4,7 @@
 ### work in progress
 
 - [+] add animation lock
-- [ ] fix merge animation
-- [ ] add new tiles animation
+- [+] fix merge animation (kind of)
+- [+] add new tiles animation
 - [ ] add responsive/fullscreen
-- [+] add ip to highscore json
+- [+] make highscores for individual IP
