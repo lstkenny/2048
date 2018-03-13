@@ -3,7 +3,8 @@
 
 ### work in progress
 
-- [ ] add animation lock
+- [+] add animation lock
 - [ ] fix merge animation
 - [ ] add new tiles animation
 - [ ] add responsive/fullscreen
+- [+] add ip to highscore json

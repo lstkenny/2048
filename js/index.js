@@ -247,7 +247,7 @@ class Grid
 						tile: this.matrix[x][y]
 					}
 					animMap.push(anim);
-					console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.oldVal + ') merge to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
+					// console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.oldVal + ') merge to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
 				} 
 				else if (this.matrix[x][y].val && (
 					this.matrix[x][y].x != x ||
@@ -265,7 +265,7 @@ class Grid
 						tile: this.matrix[x][y]
 					}
 					animMap.push(anim);
-					console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.val + ') moves to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
+					// console.log('[' + anim.x0 + ',' + anim.y0 + '](' + anim.tile.val + ') moves to [' + anim.x + ',' + anim.y + '] with [' + anim.dx + ',' + anim.dy + ']');
 				}
 			}
 		}
@@ -390,7 +390,7 @@ class Game
 
 		this.grid = new Grid(this.config.size);
 
-		fetch('./highscores.json')
+		fetch('./highscores.php')
 		.then(response => response.json())
 		.then(scores => {
 			this.highscore = scores.highscore;
@@ -516,7 +516,7 @@ class Game
 
 	swipe(dir)
 	{
-		if (this.gameOver)
+		if (this.locked || this.gameOver)
 		{
 			return;
 		}
@@ -535,6 +535,7 @@ class Game
 			this.animMap = this.grid.getAnimMap(this.config.animFrames);
 
 			let self = this;
+			this.locked = true;
 
 			this.animate(function() {
 				self.grid.updateMatrix();
@@ -544,6 +545,7 @@ class Game
 					self.setGameOver();
 				}
 				self.draw();
+				self.locked = false;
 			});
 		}
 	}
