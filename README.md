@@ -6,5 +6,5 @@
 - [x] add animation lock
 - [x] fix merge animation (kind of)
 - [x] add new tiles animation
-- [ ] add responsive/fullscreen
+- [x] add responsive/fullscreen
 - [x] make highscores for individual IP

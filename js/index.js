@@ -334,6 +334,11 @@ class Game
 		this.config.tile = {}
 		this.config.tile.size = this.config.grid.size / this.config.size;
 		this.config.tile.margin = this.config.tile.size * 0.05;
+
+		this.config.fonts.tiles.resize = this.config.tile.size / 3;
+		this.config.fonts.logo.resize = this.config.fonts.logo.size;
+		this.config.fonts.buttons.resize = this.config.fonts.buttons.size;
+		this.config.fonts.score.resize = this.config.fonts.score.size;
 	}
 
 	setupControls()
@@ -346,7 +351,7 @@ class Game
 		this.addControl(
 			'reset',
 			{
-				x: 20,
+				x: this.config.grid.margin.left,
 				y: 100
 			}, 
 			{
@@ -360,7 +365,7 @@ class Game
 		this.addControl(
 			'undo',
 			{
-				x: this.config.grid.size + this.config.grid.margin.left - 60,
+				x: -(this.config.grid.margin.right + 60),
 				y: 100
 			}, 
 			{
@@ -548,8 +553,8 @@ class Game
 	drawScore(title, score, pos = "center")
 	{
 		let size = {
-			x: this.config.fonts.score.size * 6,
-			y: this.config.fonts.score.size * 2.7
+			x: this.config.fonts.score.resize * 6,
+			y: this.config.fonts.score.resize * 2.7
 		}
 
 		let y = 20;
@@ -564,7 +569,7 @@ class Game
 		this.drawText(
 			title,
 			size.x / 2,
-			size.y / 4 + this.config.fonts.score.size / 3,
+			size.y / 4 + this.config.fonts.score.resize / 3,
 			this.config.fonts.score,
 			this.config.colors.lightText,
 			"center"
@@ -573,7 +578,7 @@ class Game
 		this.drawText(
 			score,
 			size.x / 2,
-			size.y / 4 * 3 + this.config.fonts.score.size / 3,
+			size.y / 4 * 3 + this.config.fonts.score.resize / 3,
 			this.config.fonts.score,
 			this.config.colors.lightText,
 			"center"
@@ -585,11 +590,15 @@ class Game
 
 	drawButton(button)
 	{
+		if (button.pos.x < 0)
+		{
+			button.pos.x = this.ctx.canvas.clientWidth + button.pos.x;
+		}
 		this.ctx.translate(button.pos.x, button.pos.y);
 		this.drawText(
 			button.text,
 			button.size.x / 2,
-			button.size.y / 2 + this.config.fonts.buttons.size / 3,
+			button.size.y / 2 + this.config.fonts.buttons.resize / 3,
 			this.config.fonts.buttons,
 			this.config.colors.buttonText,
 			"center"
@@ -664,13 +673,13 @@ class Game
 				//draw tile number
 				if (tile.val)
 				{
-					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.size + 'px ' + this.config.fonts.tiles.family;
+					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.resize + 'px ' + this.config.fonts.tiles.family;
 					this.ctx.fillStyle = tile.val > 4 ? this.config.colors.lightText : this.config.colors.darkText;
 					this.ctx.textAlign = "center";
 					this.ctx.fillText(
 						tile.val, 
 						tile.y * this.config.tile.size + this.config.tile.size / 2, 
-						tile.x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
+						tile.x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.resize / 3
 					);
 				}
 			}
@@ -689,7 +698,7 @@ class Game
 			this.drawText(
 				'Game over',
 				this.config.grid.size / 2,
-				this.config.grid.size / 2 - this.config.fonts.logo.size / 3,
+				this.config.grid.size / 2 - this.config.fonts.logo.resize / 3,
 				this.config.fonts.logo,
 				this.config.colors.darkText,
 				"center"
@@ -715,7 +724,7 @@ class Game
 		this.drawText(
 			'2048',
 			this.config.grid.margin.left,
-			this.config.fonts.logo.size + 20,
+			this.config.fonts.logo.resize + 20,
 			this.config.fonts.logo,
 			this.config.colors.darkText,
 			"left"
@@ -737,9 +746,43 @@ class Game
 //game configuration
 
 document.addEventListener('DOMContentLoaded', function() {
-	const canvas = document.getElementById('cnv');
+
+	//init canvas
+
+	function resize(canvas)
+	{
+		let body = document.body;
+	    let html = document.documentElement;
+
+		let width = body.clientWidth;
+		let height = Math.max( body.scrollHeight, body.offsetHeight, 
+	                       html.clientHeight, html.scrollHeight, html.offsetHeight );
+
+		let mt = 20;
+		height -= mt * 2 + mt;
+		let size = Math.min(width, height);
+		size = Math.max(size, 615);
+		let ml = (width - size) / 2;
+
+		canvas.setAttribute("width", size);
+		canvas.setAttribute("height", size);
+		canvas.setAttribute("style", "margin:" + mt + "px " + ml + "px");
+	}
+
+
+	const canvas = document.createElement("canvas");
+	canvas.id = 'cnv';
+	document.body.appendChild(canvas);
+	resize(canvas);
+
 	const context = canvas.getContext('2d');
 	const game = new Game(context);
+
+	window.addEventListener("resize", () => {
+		resize(canvas);
+		game.setupSize();
+		game.draw();
+	});
 
 	//keyboard configuration
 	document.onkeydown = function(event) {
