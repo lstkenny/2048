@@ -314,9 +314,9 @@ class Game
 		//set grid size
 		this.config.grid = {
 			'margin': {
-				'top': 150, //score + controls panel
+				'top': this.ctx.canvas.clientHeight * 0.25, //score + controls panel
 				'right': 20, 
-				'bottom': 20,
+				'bottom': 30,
 				'left': 20
 			},
 			'size': {}
@@ -330,15 +330,24 @@ class Game
 		this.config.grid.margin.left = (this.ctx.canvas.clientWidth - this.config.grid.size) / 2;
 		this.config.grid.margin.bottom = this.ctx.canvas.clientHeight - this.config.grid.size - this.config.grid.margin.top;
 
+		//score panels size
+		this.config.score = {}
+		this.config.score.size = {
+			x: this.config.grid.margin.top * 0.8,
+			y: this.config.grid.margin.top * 0.4,
+			margin: 30
+		}
+
 		//set tiles size
 		this.config.tile = {}
 		this.config.tile.size = this.config.grid.size / this.config.size;
 		this.config.tile.margin = this.config.tile.size * 0.05;
 
-		this.config.fonts.tiles.resize = this.config.tile.size / 3;
-		this.config.fonts.logo.resize = this.config.fonts.logo.size;
-		this.config.fonts.buttons.resize = this.config.fonts.buttons.size;
-		this.config.fonts.score.resize = this.config.fonts.score.size;
+		//set font size
+		this.config.fonts.tiles.size = this.config.tile.size / 3;
+		this.config.fonts.logo.size = this.config.grid.margin.top / 2.7;
+		this.config.fonts.buttons.size = this.config.grid.margin.top / 6;
+		this.config.fonts.score.size = this.config.score.size.x / 6;
 	}
 
 	setupControls()
@@ -351,8 +360,8 @@ class Game
 		this.addControl(
 			'reset',
 			{
-				x: this.config.grid.margin.left,
-				y: 100
+				x: 0, //this.config.grid.margin.left,
+				y: -60 //this.config.grid.margin.top - 60
 			}, 
 			{
 				x: 60,
@@ -365,8 +374,8 @@ class Game
 		this.addControl(
 			'undo',
 			{
-				x: -(this.config.grid.margin.right + 60),
-				y: 100
+				x: -60, //-(this.config.grid.margin.right + 60),
+				y: -60 //this.config.grid.margin.top - 60
 			}, 
 			{
 				x: 60,
@@ -531,6 +540,7 @@ class Game
 			this.locked = true;
 
 			this.animate(function() {
+
 				self.grid.updateMatrix();
 				if (!self.grid.checkMovesAvailable())
 				{
@@ -552,24 +562,19 @@ class Game
 
 	drawScore(title, score, pos = "center")
 	{
-		let size = {
-			x: this.config.fonts.score.resize * 6,
-			y: this.config.fonts.score.resize * 2.7
-		}
-
-		let y = 20;
+		let y = this.config.score.size.margin;
 		let x = pos == 'center' ? 
-			this.config.grid.size / 2 + this.config.grid.margin.left - size.x / 2 : 
-			this.config.grid.size + this.config.grid.margin.left - size.x;
+			this.config.grid.size / 2 + this.config.grid.margin.left - this.config.score.size.x / 2 : 
+			this.config.grid.size + this.config.grid.margin.left - this.config.score.size.x;
 
 		this.ctx.translate(x, y);
 		this.ctx.fillStyle = this.config.colors.scoreBackground;
-		this.ctx.fillRect(0, 0, size.x,	size.y);
+		this.ctx.fillRect(0, 0, this.config.score.size.x, this.config.score.size.y);
 
 		this.drawText(
 			title,
-			size.x / 2,
-			size.y / 4 + this.config.fonts.score.resize / 3,
+			this.config.score.size.x / 2,
+			this.config.score.size.y / 4 + this.config.fonts.score.size / 3,
 			this.config.fonts.score,
 			this.config.colors.lightText,
 			"center"
@@ -577,8 +582,8 @@ class Game
 
 		this.drawText(
 			score,
-			size.x / 2,
-			size.y / 4 * 3 + this.config.fonts.score.resize / 3,
+			this.config.score.size.x / 2,
+			this.config.score.size.y / 4 * 3 + this.config.fonts.score.size / 3,
 			this.config.fonts.score,
 			this.config.colors.lightText,
 			"center"
@@ -590,15 +595,23 @@ class Game
 
 	drawButton(button)
 	{
+		button.pos.y = -this.config.grid.margin.top * 0.25;
+		let x = button.pos.x;
+		let y = button.pos.y;
+
 		if (button.pos.x < 0)
 		{
-			button.pos.x = this.ctx.canvas.clientWidth + button.pos.x;
+			x = this.ctx.canvas.clientWidth - this.config.grid.margin.right - this.config.grid.margin.left + button.pos.x;
 		}
-		this.ctx.translate(button.pos.x, button.pos.y);
+		if (button.pos.y < 0)
+		{
+			y = this.config.grid.margin.top + button.pos.y;
+		}
+		this.ctx.translate(x + this.config.grid.margin.left, y);
 		this.drawText(
 			button.text,
 			button.size.x / 2,
-			button.size.y / 2 + this.config.fonts.buttons.resize / 3,
+			button.size.y / 2 + this.config.fonts.buttons.size / 3,
 			this.config.fonts.buttons,
 			this.config.colors.buttonText,
 			"center"
@@ -673,13 +686,13 @@ class Game
 				//draw tile number
 				if (tile.val)
 				{
-					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.resize + 'px ' + this.config.fonts.tiles.family;
+					this.ctx.font = this.config.fonts.tiles.weight + ' ' + this.config.fonts.tiles.size + 'px ' + this.config.fonts.tiles.family;
 					this.ctx.fillStyle = tile.val > 4 ? this.config.colors.lightText : this.config.colors.darkText;
 					this.ctx.textAlign = "center";
 					this.ctx.fillText(
 						tile.val, 
 						tile.y * this.config.tile.size + this.config.tile.size / 2, 
-						tile.x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.resize / 3
+						tile.x * this.config.tile.size + this.config.tile.size / 2 + this.config.fonts.tiles.size / 3
 					);
 				}
 			}
@@ -698,7 +711,7 @@ class Game
 			this.drawText(
 				'Game over',
 				this.config.grid.size / 2,
-				this.config.grid.size / 2 - this.config.fonts.logo.resize / 3,
+				this.config.grid.size / 2 - this.config.fonts.logo.size / 3,
 				this.config.fonts.logo,
 				this.config.colors.darkText,
 				"center"
@@ -724,7 +737,7 @@ class Game
 		this.drawText(
 			'2048',
 			this.config.grid.margin.left,
-			this.config.fonts.logo.resize + 20,
+			this.config.fonts.logo.size + 20,
 			this.config.fonts.logo,
 			this.config.colors.darkText,
 			"left"
