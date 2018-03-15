@@ -431,10 +431,10 @@ class Game
 		for (let name in this.controls)
 		{
 			let btn = this.controls[name];
-			if (pos.x > btn.pos.x 
-				&& pos.x < btn.pos.x + btn.size.x
-				&& pos.y > btn.pos.y
-				&& pos.y < btn.pos.y + btn.size.y)
+			if (pos.x > btn.realpos.x 
+				&& pos.x < btn.realpos.x + btn.size.x
+				&& pos.y > btn.realpos.y
+				&& pos.y < btn.realpos.y + btn.size.y)
 			{
 				btn.callback();
 			}
@@ -607,7 +607,11 @@ class Game
 		{
 			y = this.config.grid.margin.top + button.pos.y;
 		}
-		this.ctx.translate(x + this.config.grid.margin.left, y);
+		button.realpos = {
+			x: x + this.config.grid.margin.left,
+			y: y
+		}
+		this.ctx.translate(button.realpos.x, button.realpos.y);
 		this.drawText(
 			button.text,
 			button.size.x / 2,

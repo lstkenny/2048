@@ -1,10 +1,8 @@
-# 2048
-2048 JavaScript Game
+# 2048 game
 
-### work in progress
+Classic 2048 JavaScript game
 
-- [x] add animation lock
-- [x] fix merge animation (kind of)
-- [x] add new tiles animation
-- [x] add responsive/fullscreen
-- [x] make highscores for individual IP
+![screenshot](http://metaltendency.com/2048/screenshot.png "2048")
+
+[demo](http://metaltendency.com/2048/)
+
