@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>2048</title>
+	<link rel="stylesheet" type="text/css" href="./css/styles.css">
+</head>
+<body>
+	<div id="container">
+		<div id="header">
+			<div class="logo col3">
+				2048
+			</div>
+			<div class="panel col3">
+				<div>score</div>
+				<div id="score">1820</div>
+			</div>
+			<div class="panel col3">
+				<div>best</div>
+				<div id="highscore">15512</div>
+			</div>
+		</div>
+		<div id="menu">
+			<a href="#reset" id="reset">reset</a>
+			<a href="#undo" id="undo">undo</a>
+		</div>
+		<div id="board">
+			<div id="tiles">
+				<div id="gameover">Game over</div>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+
+
+class Grid {
+	constructor(size) {
+		//init matrix
+		this.matrix = this.createMatrix(size)
+		//add 2 random tiles
+		for (let i = 0; i < 2; i++) {
+			this.createTile() 
+		}
+	}
+	createMatrix(size) {
+		return Array(size).fill().map((col, x) => 
+			Array(size).fill().map((cell, y) => {
+				return this.updateTile({ val: 0, x, y })
+			})
+		)
+	}
+	map(callback) {
+		return this.matrix.map((col, x) => 
+			col.map((cell, y) => callback(cell, x, y))
+		)
+	}
+	updateTile(cell) {
+		if (!cell.tile) {
+			cell.tile = document.createElement("div")
+		}
+		cell.tile.textContent = cell.val || ""
+		cell.tile.classList.remove(...cell.tile.classList)
+		cell.tile.classList.add("tile", `tile-${cell.val}`, `col-${cell.x + 1}`, `row-${cell.y + 1}`)
+		return cell
+	}
+	neighbour(cell, dx, dy) {
+		return this.matrix?.[cell.x + dx]?.[cell.y + dy]
+	}
+	checkMovesAvailable() {
+		let available = false
+		this.map((cell, x, y) => 
+			available ||=
+			!cell.val ||
+			cell.val === this.neighbour(cell, 1, 0)?.val ||
+			cell.val === this.neighbour(cell, 0, 1)?.val
+		)
+		return available
+	}
+	createTile() {
+		const emptyTiles = []
+		this.map((cell, x, y) => {
+			if (!cell.val) {
+				emptyTiles.push({ ...cell})
+			}
+		})
+		if (!emptyTiles.length) {
+			return false
+		}
+		const cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)]
+		cell.val = Math.random() > 0.5 ? 2 : 4
+		cell.new = true
+		this.matrix[cell.x][cell.y] = this.updateTile(cell)
+		return cell
+	}
+	clone(object) {
+		if (Array.isArray(object)) {
+			return JSON.parse(JSON.stringify(object))
+		} else if (typeof object === "object") {
+			return Object.assign({}, object)
+		}
+		return false
+	}
+	cloneMatrix() {
+		return this.clone(this.matrix)
+	}
+	transpose() {
+		this.matrix = this.matrix[0].map((row, i) => this.matrix.map(col => col[i]))
+	}
+	rotate(times = 1) {
+		for (let i = 0; i < times; i++) {
+			this.matrix = this.matrix.reverse()
+			this.transpose()
+		}
+	}
+	move(line) {
+		let lim = 0
+		for (let i = 0; i < line.length; i++) {
+			let cur = i
+			while (cur > lim) {
+				let prev = cur - 1
+				if (!line[cur].val) {
+					//skip empty tiles
+					break
+				} else if (!line[prev].val) {
+					//move tiles
+					let buff = line[cur]
+					line[cur] = line[prev]
+					line[prev] = buff
+					this.updateTile(line[prev])
+					this.updateTile(line[cur])
+				} else if (line[cur].val == line[prev].val) {
+					//merge tiles
+					line[cur].oldVal = line[cur].val
+					line[prev].oldVal = line[prev].val
+					line[cur].mergedWith = line[prev]
+					line[prev].val *= 2
+					line[cur].val = 0
+					lim = cur
+					this.updateTile(line[prev])
+					this.updateTile(line[cur])
+					this.points += line[prev].val
+					break
+				} else {
+					//obstruct tiles
+					lim = cur
+					break
+				}
+				cur--
+			}
+		}
+		return line
+	}
+	swipe(dir) {
+		let angles = {
+			'left': 0,
+			'down': 1,
+			'right': 2,
+			'up': 3
+		}
+		let angle = angles[dir]
+		this.points = 0
+		let matrix = this.cloneMatrix()
+		this.rotate(angle)
+		for (let i = 0; i < this.matrix.length; i++) {
+			this.matrix[i] = this.move(this.matrix[i])
+		}
+		this.rotate(4 - angle)
+		return this.hasChanged(matrix)
+	}
+	hasChanged(arr) {
+		let changed = false
+		this.map((cell, x, y) => {
+			changed ||= cell.val !== arr[x][y].val
+		})
+		return changed
+	}
+}
+
+class Controls {
+	constructor(config) {
+		this.config = config || {}
+		this.setupKeyboardEvents()
+		this.setupMouseEvents()		
+	}
+	runHandler(handler, e) {
+		if (typeof this.config[handler] === "function") {
+			this.config[handler](e)
+		}
+	}
+	setupKeyboardEvents() {
+		//keyboard configuration
+		document.addEventListener("keydown", e => {
+			let code = e.keyCode || e.charCode
+			this.runHandler(`key_${code}`, e)
+		})
+	}
+	setupMouseEvents() {
+		//mouse click
+		document.addEventListener("click", e => {
+			this.runHandler("mouse_click", e)
+		}, false)
+		//swipe events
+		document.addEventListener("touchstart", e => {
+			this.touchPos.x = e.touches[0].clientX
+			this.touchPos.y = e.touches[0].clientY
+		}, false)
+		document.addEventListener("touchmove", e => {
+			if (!this.touchPos) {
+				return
+			}
+			const xDiff = this.touchPos.x - evt.touches[0].clientX
+			const yDiff = this.touchPos.y - evt.touches[0].clientY
+			if (Math.abs(xDiff) > Math.abs(yDiff)) {
+				if (xDiff > 0) {
+					this.runHandler("swipe_left", e)
+				} else {
+					this.runHandler("swipe_right", e)
+				}                       
+			} else {
+				if (yDiff > 0) {
+					this.runHandler("swipe_up", e)
+				} else {
+					this.runHandler("swipe_down", e) 
+				}
+			}
+			this.touchPos = null
+		}, false)
+	}
+}
+
+class Game {
+	constructor() {
+		this.config = {
+			size: 4,
+			maxHistory: 1,
+			animFrames: 8,
+			minSize: 615,
+		}
+		this.reset()
+	}
+	reset() {
+		this.history = []
+		this.score = 0
+		this.gameOver = false
+		this.grid = new Grid(this.config.size)
+		this.highscore = window.localStorage.getItem("highscore") || 0
+		document.getElementById("gameover").style.display = "none"
+		this.draw()
+	}
+	setGameOver() {
+		this.gameOver = true
+		window.localStorage.setItem("highscore", this.highscore)
+		this.draw()
+	}
+	updateScore(score) {
+		this.score += this.grid.points
+		if (this.highscore < this.score) {
+			this.highscore = this.score
+		}
+	}
+	saveState(matrix) {
+		let state = {
+			matrix: matrix, 
+			score: this.score, 
+			highscore: this.highscore
+		}
+		this.history.push(state)
+		if (this.history.length > this.config.maxHistory) {
+			this.history = this.history.slice(
+				this.history.length - this.config.maxHistory, 
+				this.config.maxHistory + 1
+			)
+		}
+	}
+	undo() {
+		if (this.gameOver) {
+			return
+		}
+		let state = this.history.pop()
+		if (state) {
+			this.grid.matrix = state.matrix
+			this.score = state.score
+			this.highscore = state.highscore
+			this.draw()
+		}
+	}
+	swipe(dir) {
+		if (this.locked || this.gameOver) {
+			return
+		}
+		//current game state
+		let matrix = this.grid.cloneMatrix()
+		if (this.grid.swipe(dir)) {
+			//push game state to state history
+			this.saveState(matrix)
+			this.updateScore()
+			this.grid.createTile()
+			this.locked = true
+			if (!this.grid.checkMovesAvailable()) {
+				this.setGameOver()
+			}
+			this.draw()
+			this.locked = false
+		}
+	}
+	drawScore(title, score) {
+		document.getElementById(title).textContent = score
+	}
+	drawGrid() {
+		this.grid.map((cell, x, y) => {
+			document.getElementById("tiles").appendChild(cell.tile)
+		})
+		if (this.gameOver) {
+			document.getElementById("gameover").style.display = "flex"
+		}
+	}
+	draw() {
+		//score
+		this.drawScore('score',	this.score, 'center')
+		//highscore
+		this.drawScore('highscore', this.highscore, 'right')
+		//draw grid
+		this.drawGrid()
+	}
+}
+
+const game = new Game()
+game.draw()
+
+new Controls({
+	mouse_click: e => {
+		switch (e.target.id) {
+			case "reset": 
+				game.reset()
+				break
+			case "undo":
+				game.undo()
+				break
+		}
+		console.log(e)
+	},
+	key_37: e => game.swipe("left"),
+	key_38: e => game.swipe("up"),
+	key_39: e => game.swipe("right"),
+	key_40: e => game.swipe("down"),
+	key_8: e => game.undo(),
+	key_82: e => game.reset(),
+	swipe_left: e => game.swipe("left"),
+	swipe_up: e => game.swipe("up"),
+	swipe_right: e => game.swipe("right"),
+	swipe_down: e => game.swipe("down"),
+})
+
+
+		// function clearFront() {
+		// 	tiles.forEach(tile => {
+		// 		tile.classList.remove("tile-front")
+		// 	})
+		// }
+		// function tileClick(e) {
+		// 	const tile = e.target
+		// 	clearFront()
+		// 	tile.classList.add("tile-front")
+		// 	if (Math.random() > 0.5) {
+		// 		tile.classList.remove("col-1", "col-2", "col-3", "col-4")
+		// 		tile.classList.add("col-4")
+		// 	} else {
+		// 		tile.classList.remove("row-1", "row-2", "row-3", "row-4")
+		// 		tile.classList.add("row-4")
+		// 	}
+		// }
+		// const tiles = document.querySelectorAll(".tile")
+		// tiles.forEach(el => {
+		// 	el.addEventListener("click", tileClick)
+		// })
+	</script>
+</body>
+</html>

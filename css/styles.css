@@ -1,0 +1,191 @@
+* {
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+html,
+body {
+	height: 100%;
+	min-height: 100%;
+	background: #eee4da;
+	display: flex;
+	align-content: center;
+	justify-content: center;
+	font-size: 5vh;
+	font-family: "Arial";
+	font-weight: 900;
+}
+#container {
+	margin: 20px;
+	padding: 15px 0;
+	background: #fbf8f2;
+	min-width: 300px;
+	width: calc(100vh - 40px);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: center;
+}
+#header,
+#menu,
+#board {
+	width: 73%;
+}
+#header {
+	display: flex;
+	justify-content: space-between;
+}
+#header .logo {
+	color: #776d66;
+	font-size: 1.8em;
+}
+#header .panel {
+	background: #bcaea0;
+	color: #eeeeee;
+	font-size: .7em;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-around;
+}
+#header .col3 {
+	width: 28%;
+}
+#menu {
+	display: flex;
+	justify-content: space-between;
+	margin: 10px 0 5px;
+}
+#menu a {
+	text-decoration: none;
+	font-size: .8em;
+	color: #ea8212;
+}
+#board {
+	background: #bcaea0;
+	padding: 5px;
+}
+#tiles {
+	width: 100%;
+	padding-top: 100%; /* 1:1 Aspect Ratio */
+	position: relative; /* If you want text inside of it */
+}
+.tile,
+.tile-bg {
+	position: absolute;
+	width: 25%;
+	height: 25%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 1em;
+	background: #ffffff;
+	color: #eeeeee;
+	border: 5px solid #bcaea0;
+	left: 0;
+	top: 0;
+	transition: left .5s ease, 
+				top .5s ease,
+				background .5s ease;
+}
+#tiles .col-1 {
+	left: 0;
+}
+#tiles .col-2 {
+	left: 25%;
+}
+#tiles .col-3 {
+	left: 50%;
+}
+#tiles .col-4 {
+	left: 75%;
+}
+#tiles .row-1 {
+	top: 0;
+}
+#tiles .row-2 {
+	top: 25%;
+}
+#tiles .row-3 {
+	top: 50%;
+}
+#tiles .row-4 {
+	top: 75%;
+}
+.tile-1024,
+.tile-2048,
+.tile-4096,
+.tile-8192 {
+	font-size: .9em;
+}
+.tile-16384,
+.tile-32768,
+.tile-65536 {
+	font-size: .8em;
+}
+.tile-2 {
+	background: #eee4da;
+	color: #776d66;
+}
+.tile-4 {
+	background: #ece0cb;
+	color: #776d66;
+}
+.tile-8 {
+	background: #f2b179;
+}
+.tile-16 {
+	background: #ec8d53;
+}
+.tile-32 {
+	background: #f57b5f;
+}
+.tile-64 {
+	background: #e95839;
+}
+.tile-128 {
+	background: #f4d86d;
+}
+.tile-256 {
+	background: #f2d04a;
+}
+.tile-512 {
+	background: #e9c64c;
+}
+.tile-1024 {
+	background: #eac33f;
+}
+.tile-2048 {
+	background: #eac33f;
+}
+.tile-4096 {
+	background: #ed6569;
+}
+.tile-8192 {
+	background: #eb4b55;
+}
+.tile-16384 {
+	background: #f13f3d;
+}
+.tile-32768 {
+	background: #6eb3d4;
+}
+.tile-65536 {
+	background: #599edd;
+}
+.tile-front {
+	z-index: 100;
+}
+#gameover {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	display: none;
+	justify-content: center;
+	align-items: center;
+	color: #776d66;
+	background: #fffa;
+	font-size: 50px;
+}
