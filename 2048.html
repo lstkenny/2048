@@ -33,85 +33,158 @@
 	</div>
 	<script type="text/javascript">
 
-
-class Grid {
-	constructor(size) {
-		//init matrix
-		this.matrix = this.createMatrix(size)
-		//add 2 random tiles
-		for (let i = 0; i < 2; i++) {
-			this.createTile() 
+class Matrix {
+	constructor(cols, rows, values) {
+		this.cols = cols
+		this.rows = rows
+		this.cells = new Array(cols * rows).fill(undefined)
+		if (values) {
+			this.fromArray(values)
 		}
 	}
-	createMatrix(size) {
-		return Array(size).fill().map((col, x) => 
-			Array(size).fill().map((cell, y) => {
-				return this.updateTile({ val: 0, x, y })
-			})
+	invalidPos(col, row) {
+		return (
+			col < 0 ||
+			col >= this.cols ||
+			row < 0 || 
+			row >= this.rows
 		)
+	}
+	indexFromPos(col, row) {
+		if (this.invalidPos(col, row)) {
+			return null
+		}
+		return col + row * this.cols
+	}
+	indexToPos(index) {
+		const col = index % this.cols
+		const row = Math.floor(index / this.cols)
+		if (this.invalidPos(col, row)) {
+			return null
+		}
+		return { col, row }
+	}
+	fromArray(array) {
+		if (Array.isArray(array[0])) {
+			this.update((col, row) => array[col][row])
+		} else {
+			this.update((col, row, value, i) => array[i])
+		}
+	}
+	clone() {
+		return new Matrix(this.cols, this.rows, this.cells)
+	}
+	forEach(callback) {
+		this.cells.forEach((value, i) => {
+			const { col, row } = this.indexToPos(i)
+			callback.call(this, col, row, value, i)
+		})
 	}
 	map(callback) {
-		return this.matrix.map((col, x) => 
-			col.map((cell, y) => callback(cell, x, y))
-		)
+		return this.cells.map((value, i) => {
+			const { col, row } = this.indexToPos(i)
+			return callback.call(this, col, row, value, i)
+		})
 	}
-	updateTile(cell) {
-		if (!cell.tile) {
-			cell.tile = document.createElement("div")
+	update(callback) {
+		this.cells = this.map(callback)
+	}
+	shuffle() {
+		for (let i = 0; i < this.cells.length; i++) {
+			const j = Math.floor(Math.random() * this.cells.length)
+			const buff = this.cells[i]
+			this.cells[i] = this.cells[j]
+			this.cells[j] = buff
 		}
-		cell.tile.textContent = cell.val || ""
-		cell.tile.classList.remove(...cell.tile.classList)
-		cell.tile.classList.add("tile", `tile-${cell.val}`, `col-${cell.x + 1}`, `row-${cell.y + 1}`)
-		return cell
 	}
-	neighbour(cell, dx, dy) {
-		return this.matrix?.[cell.x + dx]?.[cell.y + dy]
+	flip(axis = "rows") {
+		const copy = this.clone()
+		this.update((col, row) => copy.get(
+			(axis === "rows") ? col : this.cols - 1 - col,
+			(axis === "cols") ? row : this.rows - 1 - row
+		))
+	}
+	transpose() {
+		const copy = this.clone()
+		const buff = this.cols
+		this.cols = this.rows
+		this.rows = buff
+		this.update((col, row) => copy.get(row, col))
+	}
+	rotate(dir = 1) {
+		const rotates = Math.abs(dir)
+		for (let i = 0; i < rotates; i++) {
+			this.transpose()
+			this.flip(dir > 0 ? "cols" : "rows")
+		}
+	}
+	find(callback) {
+		return this.indexToPos(this.cells.find(callback))
+	}
+	getCol(col) {
+		let data = []
+		for (let row = 0; row < this.rows; row++) {
+			data[row] = this.get(col, row)
+		}
+		return data
+	}
+	getRow(row) {
+		let data = []
+		for (let col = 0; col < this.cols; col++) {
+			data[col] = this.get(col, row)
+		}
+		return data
+	}
+	setCol(col, data) {
+		data.forEach((value, row) => this.set(col, row, value))
+	}
+	setRow(row, data) {
+		data.forEach((value, col) => this.set(col, row, value))
+	}
+	set(col, row, value) {
+		const index = this.indexFromPos(col, row)
+		if (index !== null) {
+			this.cells[index] = value
+		}
+	}
+	get(col, row) {
+		return this.cells[this.indexFromPos(col, row)]
+	}
+}
+
+class Grid extends Matrix {
+	constructor(size) {
+		//init matrix
+		super(size, size)
+		this.update(() => ({ val: 0 }))
+		//add 2 random tiles
+		for (let i = 0; i < 2; i++) {
+			this.createTile()
+		}
 	}
 	checkMovesAvailable() {
 		let available = false
-		this.map((cell, x, y) => 
+		this.forEach((col, row, cell) => 
 			available ||=
 			!cell.val ||
-			cell.val === this.neighbour(cell, 1, 0)?.val ||
-			cell.val === this.neighbour(cell, 0, 1)?.val
+			cell.val === this.get(col + 1, row) ||
+			cell.val === this.get(col, row + 1)
 		)
 		return available
 	}
 	createTile() {
 		const emptyTiles = []
-		this.map((cell, x, y) => {
+		this.forEach((col, row, cell) => {
 			if (!cell.val) {
-				emptyTiles.push({ ...cell})
+				emptyTiles.push(cell)
 			}
 		})
 		if (!emptyTiles.length) {
 			return false
 		}
-		const cell = emptyTiles[Math.floor(Math.random() * emptyTiles.length)]
-		cell.val = Math.random() > 0.5 ? 2 : 4
-		cell.new = true
-		this.matrix[cell.x][cell.y] = this.updateTile(cell)
-		return cell
-	}
-	clone(object) {
-		if (Array.isArray(object)) {
-			return JSON.parse(JSON.stringify(object))
-		} else if (typeof object === "object") {
-			return Object.assign({}, object)
-		}
-		return false
-	}
-	cloneMatrix() {
-		return this.clone(this.matrix)
-	}
-	transpose() {
-		this.matrix = this.matrix[0].map((row, i) => this.matrix.map(col => col[i]))
-	}
-	rotate(times = 1) {
-		for (let i = 0; i < times; i++) {
-			this.matrix = this.matrix.reverse()
-			this.transpose()
-		}
+		const emptyTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)]
+		emptyTile.val = Math.random() > 0.5 ? 2 : 4
+		return emptyTile
 	}
 	move(line) {
 		let lim = 0
@@ -127,18 +200,14 @@ class Grid {
 					let buff = line[cur]
 					line[cur] = line[prev]
 					line[prev] = buff
-					this.updateTile(line[prev])
-					this.updateTile(line[cur])
 				} else if (line[cur].val == line[prev].val) {
 					//merge tiles
-					line[cur].oldVal = line[cur].val
-					line[prev].oldVal = line[prev].val
-					line[cur].mergedWith = line[prev]
+					// line[cur].oldVal = line[cur].val
+					// line[prev].oldVal = line[prev].val
+					// line[cur].mergedWith = line[prev]
 					line[prev].val *= 2
 					line[cur].val = 0
 					lim = cur
-					this.updateTile(line[prev])
-					this.updateTile(line[cur])
 					this.points += line[prev].val
 					break
 				} else {
@@ -156,24 +225,35 @@ class Grid {
 			'left': 0,
 			'down': 1,
 			'right': 2,
-			'up': 3
+			'up': -1
 		}
 		let angle = angles[dir]
 		this.points = 0
-		let matrix = this.cloneMatrix()
+		let matrix = this.clone()
 		this.rotate(angle)
-		for (let i = 0; i < this.matrix.length; i++) {
-			this.matrix[i] = this.move(this.matrix[i])
+		for (let i = 0; i < this.rows; i++) {
+			this.setRow(i, this.move(this.getRow(i)))
 		}
-		this.rotate(4 - angle)
+		this.rotate(-angle)
 		return this.hasChanged(matrix)
 	}
 	hasChanged(arr) {
 		let changed = false
-		this.map((cell, x, y) => {
-			changed ||= cell.val !== arr[x][y].val
+		this.forEach((col, row, cell) => {
+			changed ||= cell.val !== arr.get(col, row)
 		})
 		return changed
+	}
+	print() {
+		const table = []
+		this.forEach((col, row, cell) => {
+			if (!table[row]) {
+				table[row] = []
+			}
+			table[row][col] = cell.val
+		})
+		console.clear()
+		console.table(table)
 	}
 }
 
@@ -198,6 +278,9 @@ class Controls {
 	setupMouseEvents() {
 		//mouse click
 		document.addEventListener("click", e => {
+			if (e.target.id) {
+				this.runHandler(`mouse_click_${e.target.id}`)
+			}
 			this.runHandler("mouse_click", e)
 		}, false)
 		//swipe events
@@ -289,10 +372,10 @@ class Game {
 		if (this.locked || this.gameOver) {
 			return
 		}
-		//current game state
-		let matrix = this.grid.cloneMatrix()
+		//	current game state
+		let matrix = this.grid.clone()
 		if (this.grid.swipe(dir)) {
-			//push game state to state history
+			//	push game state to state history
 			this.saveState(matrix)
 			this.updateScore()
 			this.grid.createTile()
@@ -304,13 +387,23 @@ class Game {
 			this.locked = false
 		}
 	}
+	updateTile(col, row, cell) {
+		if (!cell.tile) {
+			console.log(col, row, cell)
+			cell.tile = document.createElement("div")
+			document.getElementById("tiles").appendChild(cell.tile)
+		}
+		cell.tile.textContent = cell.val || ""
+		cell.tile.classList.remove(...cell.tile.classList)
+		cell.tile.classList.add("tile", `tile-${cell.val}`, `col-${col + 1}`, `row-${row + 1}`)
+		return cell
+	}
 	drawScore(title, score) {
 		document.getElementById(title).textContent = score
 	}
 	drawGrid() {
-		this.grid.map((cell, x, y) => {
-			document.getElementById("tiles").appendChild(cell.tile)
-		})
+		this.grid.update((col, row, cell) => this.updateTile(col, row, cell))
+		// this.grid.print()
 		if (this.gameOver) {
 			document.getElementById("gameover").style.display = "flex"
 		}
@@ -326,20 +419,10 @@ class Game {
 }
 
 const game = new Game()
-game.draw()
 
 new Controls({
-	mouse_click: e => {
-		switch (e.target.id) {
-			case "reset": 
-				game.reset()
-				break
-			case "undo":
-				game.undo()
-				break
-		}
-		console.log(e)
-	},
+	mouse_click_reset: e => game.reset(),
+	mouse_click_undo: e => game.undo(),
 	key_37: e => game.swipe("left"),
 	key_38: e => game.swipe("up"),
 	key_39: e => game.swipe("right"),
