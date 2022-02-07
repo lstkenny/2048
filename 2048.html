@@ -157,10 +157,6 @@ class Grid extends Matrix {
 		//init matrix
 		super(size, size)
 		this.update(() => ({ val: 0 }))
-		//add 2 random tiles
-		for (let i = 0; i < 2; i++) {
-			this.createTile()
-		}
 	}
 	checkMovesAvailable() {
 		let available = false
@@ -202,13 +198,13 @@ class Grid extends Matrix {
 					line[prev] = buff
 				} else if (line[cur].val == line[prev].val) {
 					//merge tiles
-					// line[cur].oldVal = line[cur].val
-					// line[prev].oldVal = line[prev].val
-					// line[cur].mergedWith = line[prev]
-					line[prev].val *= 2
-					line[cur].val = 0
+					line[prev].val = 0
+					line[cur].val *= 2
+					let buff = line[cur]
+					line[cur] = line[prev]
+					line[prev] = buff					
 					lim = cur
-					this.points += line[prev].val
+					this.points += line[cur].val
 					break
 				} else {
 					//obstruct tiles
@@ -229,18 +225,18 @@ class Grid extends Matrix {
 		}
 		let angle = angles[dir]
 		this.points = 0
-		let matrix = this.clone()
+		let copy = this.map((col, row, tile) => ({ col, row, val: tile.val }))
 		this.rotate(angle)
 		for (let i = 0; i < this.rows; i++) {
 			this.setRow(i, this.move(this.getRow(i)))
 		}
 		this.rotate(-angle)
-		return this.hasChanged(matrix)
+		return this.hasChanged(copy)
 	}
 	hasChanged(arr) {
 		let changed = false
-		this.forEach((col, row, cell) => {
-			changed ||= cell.val !== arr.get(col, row)
+		arr.forEach(({ col, row, val }) => {
+			changed ||= val !== this.get(col, row).val
 		})
 		return changed
 	}
@@ -317,17 +313,25 @@ class Game {
 		this.config = {
 			size: 4,
 			maxHistory: 1,
-			animFrames: 8,
-			minSize: 615,
+			animTime: .5,
 		}
+		this.grid = new Grid(this.config.size)
 		this.reset()
 	}
 	reset() {
 		this.history = []
 		this.score = 0
 		this.gameOver = false
-		this.grid = new Grid(this.config.size)
+		this.grid.update((col, row, cell) => {
+			cell.val = 0
+			return cell
+		})
+		//add 2 random tiles
+		for (let i = 0; i < 2; i++) {
+			this.grid.createTile()
+		}
 		this.highscore = window.localStorage.getItem("highscore") || 0
+
 		document.getElementById("gameover").style.display = "none"
 		this.draw()
 	}
@@ -378,24 +382,33 @@ class Game {
 			//	push game state to state history
 			this.saveState(matrix)
 			this.updateScore()
-			this.grid.createTile()
 			this.locked = true
 			if (!this.grid.checkMovesAvailable()) {
 				this.setGameOver()
 			}
 			this.draw()
-			this.locked = false
+			setTimeout(game => {
+				game.grid.createTile()
+				game.locked = false
+				game.draw()
+			}, this.config.animTime * 1000, this)
 		}
 	}
 	updateTile(col, row, cell) {
-		if (!cell.tile) {
-			console.log(col, row, cell)
-			cell.tile = document.createElement("div")
-			document.getElementById("tiles").appendChild(cell.tile)
+		if (cell.val) {
+			if (!cell.tile) {
+				cell.tile = document.createElement("div")
+				document.getElementById("tiles").appendChild(cell.tile)
+			}
+			cell.tile.textContent = cell.val || ""
+			cell.tile.classList.remove(...cell.tile.classList)
+			cell.tile.classList.add("tile", `tile-${cell.val}`, `col-${col + 1}`, `row-${row + 1}`)
+		} else {
+			if (cell.tile) {
+				cell.tile.remove()
+			}
+			cell = { val: 0 }
 		}
-		cell.tile.textContent = cell.val || ""
-		cell.tile.classList.remove(...cell.tile.classList)
-		cell.tile.classList.add("tile", `tile-${cell.val}`, `col-${col + 1}`, `row-${row + 1}`)
 		return cell
 	}
 	drawScore(title, score) {
