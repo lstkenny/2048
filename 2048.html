@@ -28,6 +28,22 @@
 		<div id="board">
 			<div id="tiles">
 				<div id="gameover">Game over</div>
+				<div class="tile-bg col-1 row-1"></div>
+				<div class="tile-bg col-2 row-1"></div>
+				<div class="tile-bg col-3 row-1"></div>
+				<div class="tile-bg col-4 row-1"></div>
+				<div class="tile-bg col-1 row-2"></div>
+				<div class="tile-bg col-2 row-2"></div>
+				<div class="tile-bg col-3 row-2"></div>
+				<div class="tile-bg col-4 row-2"></div>
+				<div class="tile-bg col-1 row-3"></div>
+				<div class="tile-bg col-2 row-3"></div>
+				<div class="tile-bg col-3 row-3"></div>
+				<div class="tile-bg col-4 row-3"></div>
+				<div class="tile-bg col-1 row-4"></div>
+				<div class="tile-bg col-2 row-4"></div>
+				<div class="tile-bg col-3 row-4"></div>
+				<div class="tile-bg col-4 row-4"></div>
 			</div>
 		</div>
 	</div>
@@ -168,19 +184,20 @@ class Grid extends Matrix {
 		)
 		return available
 	}
-	createTile() {
-		const emptyTiles = []
+	createCell() {
+		const freeCells = []
 		this.forEach((col, row, cell) => {
 			if (!cell.val) {
-				emptyTiles.push(cell)
+
+				freeCells.push({ col, row, cell })
 			}
 		})
-		if (!emptyTiles.length) {
+		if (!freeCells.length) {
 			return false
 		}
-		const emptyTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)]
-		emptyTile.val = Math.random() > 0.5 ? 2 : 4
-		return emptyTile
+		const randomCell = freeCells[Math.floor(Math.random() * freeCells.length)]
+		randomCell.cell.val = Math.random() > 0.5 ? 2 : 4
+		return randomCell
 	}
 	move(line) {
 		let lim = 0
@@ -225,7 +242,7 @@ class Grid extends Matrix {
 		}
 		let angle = angles[dir]
 		this.points = 0
-		let copy = this.map((col, row, tile) => ({ col, row, val: tile.val }))
+		let copy = this.map((col, row, cell) => ({ col, row, val: cell.val }))
 		this.rotate(angle)
 		for (let i = 0; i < this.rows; i++) {
 			this.setRow(i, this.move(this.getRow(i)))
@@ -328,7 +345,7 @@ class Game {
 		})
 		//add 2 random tiles
 		for (let i = 0; i < 2; i++) {
-			this.grid.createTile()
+			this.createTile()
 		}
 		this.highscore = window.localStorage.getItem("highscore") || 0
 
@@ -372,6 +389,10 @@ class Game {
 			this.draw()
 		}
 	}
+	createTile() {
+		const { col, row, cell } = this.grid.createCell()
+		this.updateTile(col, row, cell)
+	}
 	swipe(dir) {
 		if (this.locked || this.gameOver) {
 			return
@@ -386,11 +407,10 @@ class Game {
 			if (!this.grid.checkMovesAvailable()) {
 				this.setGameOver()
 			}
+			this.createTile()
 			this.draw()
 			setTimeout(game => {
-				game.grid.createTile()
 				game.locked = false
-				game.draw()
 			}, this.config.animTime * 1000, this)
 		}
 	}
@@ -399,6 +419,9 @@ class Game {
 			if (!cell.tile) {
 				cell.tile = document.createElement("div")
 				document.getElementById("tiles").appendChild(cell.tile)
+				cell.tile.classList.add("tile", "tile-new", `col-${col + 1}`, `row-${row + 1}`)
+				//	trigger browser reflow
+				cell.tile.offsetWidth
 			}
 			cell.tile.textContent = cell.val || ""
 			cell.tile.classList.remove(...cell.tile.classList)

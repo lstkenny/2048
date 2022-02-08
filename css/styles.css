@@ -81,12 +81,24 @@ body {
 	font-size: 1em;
 	background: #ffffff;
 	color: #eeeeee;
-	border: 5px solid #bcaea0;
 	left: 0;
 	top: 0;
+}
+.tile-bg {
+	border: 5px solid #bcaea0;
+}
+.tile {
+	margin: 5px;
+	width: calc(25% - 10px);
+	height: calc(25% - 10px);
 	transition: left .5s ease, 
 				top .5s ease,
+				opacity .5s ease,
+				color .5s ease,
 				background .5s ease;
+}
+.tile-new {
+	opacity: 0;
 }
 #tiles .col-1 {
 	left: 0;
